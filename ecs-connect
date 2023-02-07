@@ -1,0 +1,38 @@
+#!/bin/bash
+
+PS3='Please select ecs cluster: '
+cluster_response=$(aws ecs list-clusters | jq -r .clusterArns[]);
+options=( $cluster_response );
+
+select cluster in "${options[@]}"
+do
+    break;
+done
+
+printf "\n\n";
+
+PS3='Please select ecs task: '
+tasks_response=$(aws ecs list-tasks --cluster $cluster | jq -r .taskArns[]);
+options=( $tasks_response );
+
+select task in "${options[@]}"
+do
+    break;
+done
+
+printf "\n\n";
+
+
+PS3='Please select container to connect: '
+containers_response=$(aws ecs describe-tasks --cluster $cluster --tasks $task | jq -r '.tasks[].containers[].name');
+options=( $containers_response );
+
+select container in "${options[@]}"
+do
+    break;
+done
+
+printf "\n";
+echo "Connecting to the container...";
+
+aws ecs execute-command --cluster $cluster --task $task --container $container --command "/bin/sh" --interactive
