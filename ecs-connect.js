@@ -10,7 +10,7 @@ import {
     DescribeClustersCommand,
 } from '@aws-sdk/client-ecs';
 import { spawn } from 'child_process';
-import {createSpinner} from 'nanospinner'
+import { createSpinner } from 'nanospinner'
 
 const data = {
     cluster: {

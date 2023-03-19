@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {},
   "type": "module",
+  "bin": "./ecs-connect.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/giunashvili/ecs-connect.git"
