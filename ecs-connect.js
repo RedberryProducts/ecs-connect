@@ -100,7 +100,6 @@ const connectToContainer = () => {
     const target = `ecs:${data.cluster.name}_${data.taskArn}_${data.containerRuntimeId}`;
     const command = `aws ssm start-session --target ${target}`;
     spawn(command, {stdio: 'inherit', shell: 'sh'});
-    // console.log(command);
 }
 
 
