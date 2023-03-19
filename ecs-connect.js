@@ -9,7 +9,8 @@ import {
     DescribeServicesCommand, 
     DescribeClustersCommand,
 } from '@aws-sdk/client-ecs';
-import { exec, execSync, spawn, spawnSync } from 'child_process';
+import { spawn } from 'child_process';
+import {createSpinner} from 'nanospinner'
 
 const data = {
     cluster: {
@@ -92,14 +93,20 @@ const askAboutContainers = async () => {
         choices: data.containers.map(el => el.name),
     }]);
 
-
     data.containerRuntimeId = data.containers.find(el => el.name === container).runtimeId;
 }
 
 const connectToContainer = () => {
     const target = `ecs:${data.cluster.name}_${data.taskArn}_${data.containerRuntimeId}`;
     const command = `aws ssm start-session --target ${target}`;
-    spawn(command, {stdio: 'inherit', shell: 'sh'});
+    console.log("\n");
+
+    const spinner = createSpinner('Wait for connection...');
+    spinner.start();
+    setTimeout(() => {
+        spinner.stop();
+        spawn(command, {stdio: 'inherit', shell: 'sh'});
+    }, 3000);
 }
 
 
