@@ -1,0 +1,28 @@
+{
+  "name": "ecs-connect",
+  "version": "0.1.0-beta",
+  "description": "ECS Connect is a handy cli to easily connect to your aws ecs cluster containers",
+  "main": "index.js",
+  "scripts": {},
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/giunashvili/ecs-connect.git"
+  },
+  "keywords": [
+    "ECS",
+    "AWS ECS",
+    "ECS Connect"
+  ],
+  "author": "giunashvili",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/giunashvili/ecs-connect/issues"
+  },
+  "homepage": "https://github.com/giunashvili/ecs-connect#readme",
+  "dependencies": {
+    "@aws-sdk/client-ecs": "^3.294.0",
+    "chalk": "^5.2.0",
+    "inquirer": "^9.1.5"
+  }
+}
