@@ -14,7 +14,6 @@ import {
 import { spawn, execSync } from 'child_process';
 import { createSpinner } from 'nanospinner'
 import { readFileSync } from 'fs'
-import path from 'path';
 
 const data = {
     cluster: {
@@ -38,20 +37,36 @@ const upgrade = () => {
 
     if(argument === 'upgrade')
     {
-        execSync('sudo npm -g update ecs-connect');
+        if(isUpToDate())
+        {
+            console.log(chalk.greenBright.bold('You already have latest version! --> ') + chalk.yellowBright(getCurrentVersion()));
+        }
+        else
+        {
+            execSync('sudo npm -g update ecs-connect');
+            const latestVersion = execSync('npm view ecs-connect version').toString().trim();
+            console.log(chalk.greenBright.bold('✅ Upgraded successfully! --> ') + chalk.yellowBright(latestVersion));
+        }
         process.exit(0);
     }
 }
 
-const checkVersion = () => {
-
+const getCurrentVersion = () => {
     const rawPackageJson = readFileSync('./package.json').toString();
     const packageJson = JSON.parse(rawPackageJson);
-    const { version: currentVersion } = packageJson;
+    return packageJson.version;
+}
 
-    const latestVersion = execSync('npm view ecs-connect version').toString().trim();
-    
-    if(currentVersion !== latestVersion)
+const getLatestVersion = () => {
+    return execSync('npm view ecs-connect version').toString().trim();
+}
+
+const isUpToDate = () => {
+    return getCurrentVersion() === getLatestVersion();
+}
+
+const checkVersion = () => {
+    if(! isUpToDate())
     {
         console.log('Your version is behind! - ' + chalk.redBright.italic(currentVersion))
         console.log(
