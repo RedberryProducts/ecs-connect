@@ -13,6 +13,8 @@ import {
 } from '@aws-sdk/client-ecs';
 import { spawn, execSync } from 'child_process';
 import { createSpinner } from 'nanospinner'
+import { readFileSync } from 'fs'
+import path from 'path';
 
 const data = {
     cluster: {
@@ -41,10 +43,31 @@ const upgrade = () => {
     }
 }
 
+const checkVersion = () => {
+
+    const rawPackageJson = readFileSync('./package.json').toString();
+    const packageJson = JSON.parse(rawPackageJson);
+    const { version: currentVersion } = packageJson;
+
+    const latestVersion = execSync('npm view ecs-connect version').toString().trim();
+    
+    if(currentVersion !== latestVersion)
+    {
+        console.log('Your version is behind! - ' + chalk.redBright.italic(currentVersion))
+        console.log(
+            'Please run ' + chalk.yellow.italic('ecs-connect upgrade') + 
+            ' to get the latest version! ' + 
+            chalk.yellow.italic(latestVersion),
+        );
+        console.log("\n\n")
+    }
+}
+
 const welcome = () => {
     console.log(
         chalk.bold.blueBright('ECS Connect 🔌'),
     );
+    console.log('');
 }
 
 
@@ -126,6 +149,7 @@ const connectToContainer = () => {
 
 (async function () {
     upgrade();
+    checkVersion();
     welcome();
     await askAboutCluster();
     await askAboutServices();
