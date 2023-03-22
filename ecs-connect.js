@@ -11,7 +11,7 @@ import {
     DescribeServicesCommand, 
     DescribeClustersCommand,
 } from '@aws-sdk/client-ecs';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import { createSpinner } from 'nanospinner'
 
 const data = {
@@ -30,11 +30,23 @@ const data = {
 
 const client = new ECSClient();
 
+
+const upgrade = () => {
+    const [_, __, argument] = process.argv;
+
+    if(argument === 'upgrade')
+    {
+        execSync('sudo npm -g update ecs-connect');
+        process.exit(0);
+    }
+}
+
 const welcome = () => {
     console.log(
         chalk.bold.blueBright('ECS Connect 🔌'),
     );
 }
+
 
 const askAboutCluster = async () => {
     const { clusterArns } = await client.send(new ListClustersCommand({}));
@@ -113,6 +125,7 @@ const connectToContainer = () => {
 
 
 (async function () {
+    upgrade();
     welcome();
     await askAboutCluster();
     await askAboutServices();
