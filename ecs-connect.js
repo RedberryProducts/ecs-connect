@@ -31,7 +31,6 @@ const data = {
 
 const client = new ECSClient();
 
-
 const upgrade = () => {
     const [_, __, argument] = process.argv;
 
