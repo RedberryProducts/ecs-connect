@@ -68,11 +68,11 @@ const isUpToDate = () => {
 const checkVersion = () => {
     if(! isUpToDate())
     {
-        console.log('Your version is behind! - ' + chalk.redBright.italic(currentVersion))
+        console.log('Your version is behind! - ' + chalk.redBright.italic(getCurrentVersion()))
         console.log(
             'Please run ' + chalk.yellow.italic('ecs-connect upgrade') + 
             ' to get the latest version! ' + 
-            chalk.yellow.italic(latestVersion),
+            chalk.yellow.italic(latestVersion()),
         );
         console.log("\n\n")
     }
