@@ -27,14 +27,13 @@ const data = {
     taskArn: null,
     containers: null,
     containerRuntimeId: null,
+    version: '0.3.6-beta',
 };
 
 const client = new ECSClient();
 
 const getCurrentVersion = () => {
-    const rawPackageJson = readFileSync('./package.json').toString();
-    const packageJson = JSON.parse(rawPackageJson);
-    return packageJson.version;
+    return data.version;
 }
 
 const getLatestVersion = () => {
