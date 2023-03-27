@@ -31,25 +31,6 @@ const data = {
 
 const client = new ECSClient();
 
-const upgrade = () => {
-    const [_, __, argument] = process.argv;
-
-    if(argument === 'upgrade')
-    {
-        if(isUpToDate())
-        {
-            console.log(chalk.greenBright.bold('You already have latest version! --> ') + chalk.yellowBright(getCurrentVersion()));
-        }
-        else
-        {
-            execSync('sudo npm -g update ecs-connect');
-            const latestVersion = execSync('npm view ecs-connect version').toString().trim();
-            console.log(chalk.greenBright.bold('✅ Upgraded successfully! --> ') + chalk.yellowBright(latestVersion));
-        }
-        process.exit(0);
-    }
-}
-
 const getCurrentVersion = () => {
     const rawPackageJson = readFileSync('./package.json').toString();
     const packageJson = JSON.parse(rawPackageJson);
@@ -69,8 +50,7 @@ const checkVersion = () => {
     {
         console.log('Your version is behind! - ' + chalk.redBright.italic(getCurrentVersion()))
         console.log(
-            'Please run ' + chalk.yellow.italic('ecs-connect upgrade') + 
-            ' to get the latest version! ' + 
+            'Please update the package to get the latest version! ' + 
             chalk.yellow.italic(latestVersion()),
         );
         console.log("\n\n")
@@ -162,7 +142,6 @@ const connectToContainer = () => {
 
 
 (async function () {
-    upgrade();
     checkVersion();
     welcome();
     await askAboutCluster();
