@@ -1,6 +1,6 @@
 {
   "name": "ecs-connect",
-  "version": "0.3.7-beta",
+  "version": "0.3.8-beta",
   "description": "ECS Connect is a handy cli to easily connect to your aws ecs cluster containers",
   "main": "index.js",
   "scripts": {},
