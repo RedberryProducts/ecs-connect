@@ -51,7 +51,7 @@ const checkVersion = () => {
             'Please update the package to get the latest version! ' + 
             chalk.yellow.italic(getLatestVersion()),
         );
-        console.log('Run ' + chalk.yellowBright.italic('npm update -g ecs-connect'));
+        console.log('Run ' + chalk.yellowBright.italic('npm -g update ecs-connect'));
         console.log("\n\n");
     }
 }
