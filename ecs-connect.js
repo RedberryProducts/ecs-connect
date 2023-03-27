@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-import chalk from 'chalk';
+import chalk, { Chalk } from 'chalk';
 import inquirer from 'inquirer';
 import {
     ECSClient, 
@@ -52,7 +52,8 @@ const checkVersion = () => {
             'Please update the package to get the latest version! ' + 
             chalk.yellow.italic(latestVersion()),
         );
-        console.log("\n\n")
+        console.log('Run ' + chalk.yellowBright.italic('npm update -g ecs-connect'));
+        console.log("\n\n");
     }
 }
 
