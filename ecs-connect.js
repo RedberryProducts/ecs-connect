@@ -13,7 +13,6 @@ import {
 } from '@aws-sdk/client-ecs';
 import { spawn, execSync } from 'child_process';
 import { createSpinner } from 'nanospinner'
-import { readFileSync } from 'fs'
 
 const data = {
     cluster: {
@@ -27,7 +26,7 @@ const data = {
     taskArn: null,
     containers: null,
     containerRuntimeId: null,
-    version: '0.3.6-beta',
+    version: '0.3.7-beta',
 };
 
 const client = new ECSClient();
