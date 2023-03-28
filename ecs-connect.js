@@ -3,7 +3,7 @@
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import {
-    ECSClient, 
+    ECSClient,
     ListTasksCommand, 
     ListClustersCommand, 
     ListServicesCommand,
@@ -143,11 +143,15 @@ const connectToContainer = () => {
 
 
 (async function () {
-    checkVersion();
-    welcome();
-    await askAboutCluster();
-    await askAboutServices();
-    await askAboutTasks();
-    await askAboutContainers();
-    connectToContainer();
+    try {
+        checkVersion();
+        welcome();
+        await askAboutCluster();
+        await askAboutServices();
+        await askAboutTasks();
+        await askAboutContainers();
+        connectToContainer();
+    } catch(e) {
+        console.log(chalk.redBright.bold(e.message));
+    }
 })();
