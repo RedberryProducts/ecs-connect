@@ -1,22 +1,23 @@
 name: Node.js Package
 
 on:
-  release:
-    types: [created]
+  push:
+    branches: [ main ]
+  # release:
+    # types: [created]
 
 jobs:
   publish:
     runs-on: ubuntu-20.04
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v3
+      - name: setup .npmrc file
+        run: |
+          cd ~
+          touch .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> .npmrc
       - uses: actions/setup-node@v3
         with:
           node-version: 16
-          registry-url: https://npm.pkg.github.com/
       - run: npm ci
-      - run: npm publish --registry=https://registry.npmjs.org/
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish
