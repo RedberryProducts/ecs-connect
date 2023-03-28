@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-import chalk, { Chalk } from 'chalk';
+import chalk from 'chalk';
 import inquirer from 'inquirer';
 import {
     ECSClient, 
@@ -26,13 +26,15 @@ const data = {
     taskArn: null,
     containers: null,
     containerRuntimeId: null,
-    version: '0.3.10-beta',
 };
 
 const client = new ECSClient();
 
 const getCurrentVersion = () => {
-    return data.version;
+    const rawData = execSync('npm list -g --json').toString().trim();
+    const data = JSON.parse(rawData);
+    const { version } = data.dependencies['ecs-connect'];
+    return version;
 }
 
 const getLatestVersion = () => {
