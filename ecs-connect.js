@@ -26,7 +26,7 @@ const data = {
     taskArn: null,
     containers: null,
     containerRuntimeId: null,
-    version: '0.3.9-beta',
+    version: '0.3.10-beta',
 };
 
 const client = new ECSClient();
