@@ -76,8 +76,11 @@ const askAboutCluster = async () => {
         type: 'list',
         name: 'cluster',
         message: 'Choose your cluster',
-        choices: clusters.map(el => el.clusterName),
+        choices: [...clusters.map(el => el.clusterName), {type: 'separator'}, 'Cancel'],
     }]);
+
+    if(answer.cluster === 'Cancel')
+        process.exit(0);
 
     data.cluster.name = answer.cluster;
     data.cluster.arn = clusters.find(el => el.clusterName === answer.cluster).clusterArn; 
@@ -91,11 +94,16 @@ const askAboutServices = async () => {
         type: 'list',
         name: 'service',
         message: 'Choose service inside a cluster',
-        choices: services.map(el => el.serviceName),
+        choices: [...services.map(el => el.serviceName), {type: 'separator'}, 'Go Back'],
     }]);
+    
+    if(service !== 'Go Back')
+    {
+        data.service.name = service;
+        data.service.arn = services.find(el => el.serviceName === service).serviceArn;
+    }
 
-    data.service.name = service;
-    data.service.arn = services.find(el => el.serviceName === service).serviceArn;
+    return service;
 }
 
 const askAboutTasks = async () => {
@@ -110,11 +118,16 @@ const askAboutTasks = async () => {
         type: 'list',
         name: 'task',
         message: 'Choose task inside service',
-        choices: taskTrimmedArns,
+        choices: [...taskTrimmedArns, {type: 'separator'}, 'Go Back'],
     }]);
 
-    data.taskArn = task;
-    data.containers = tasks.find(el => el.taskArn.endsWith(task)).containers;
+    if(task !== 'Go Back')
+    {
+        data.taskArn = task;
+        data.containers = tasks.find(el => el.taskArn.endsWith(task)).containers;
+    }
+
+    return task;
 }
 
 const askAboutContainers = async () => {
@@ -122,10 +135,15 @@ const askAboutContainers = async () => {
         type: 'list',
         name: 'container',
         message: 'Choose container to connect',
-        choices: data.containers.map(el => el.name),
+        choices: [...data.containers.map(el => el.name), {type: 'separator'}, 'Go Back'],
     }]);
 
-    data.containerRuntimeId = data.containers.find(el => el.name === container).runtimeId;
+    if(container !== 'Go Back')
+    {
+        data.containerRuntimeId = data.containers.find(el => el.name === container).runtimeId;
+    }
+
+    return container;
 }
 
 const connectToContainer = () => {
@@ -146,10 +164,24 @@ const connectToContainer = () => {
     try {
         checkVersion();
         welcome();
-        await askAboutCluster();
-        await askAboutServices();
-        await askAboutTasks();
-        await askAboutContainers();
+        
+        const bus = [
+            askAboutCluster,
+            askAboutServices,
+            askAboutTasks,
+            askAboutContainers,
+        ];
+
+        for(let i = 0; i<bus.length; i++)
+        {
+            const result = await bus[i]();
+
+            if(result == 'Go Back')
+            {
+                i -= 2;
+            }
+        }
+
         connectToContainer();
     } catch(e) {
         console.log(chalk.redBright.bold(e.message));
