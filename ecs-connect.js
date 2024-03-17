@@ -30,6 +30,18 @@ const data = {
 
 const client = new ECSClient();
 
+const getHelp = () => {
+    console.log(chalk.bold('Simplified way to connect ECS containers'))
+    console.log(`
+Usage: ecs-connect [OPTIONS]
+
+Options:
+
+-h, --help              Information about the usage of the tool and its options
+--print-only            print target to the console to use it for any purpose(for example: port forwarding)
+    `);
+}
+
 const getCurrentVersion = () => {
     const rawData = execSync('npm list -g --json').toString().trim();
     const data = JSON.parse(rawData);
@@ -146,9 +158,12 @@ const askAboutContainers = async () => {
     return container;
 }
 
+const getTarget = () => {
+    return `ecs:${data.cluster.name}_${data.taskArn}_${data.containerRuntimeId}`;
+}
+
 const connectToContainer = () => {
-    const target = `ecs:${data.cluster.name}_${data.taskArn}_${data.containerRuntimeId}`;
-    const command = `aws ssm start-session --target ${target}`;
+    const command = `aws ssm start-session --target ${getTarget()}`;
     console.log("\n");
 
     const spinner = createSpinner('Wait for connection...');
@@ -159,18 +174,31 @@ const connectToContainer = () => {
     }, 3000);
 }
 
+const shouldHelp = () => {
+    const args = process.argv.slice(2);
+    return args.length > 0 && ['-h', '--help'].includes(args[0]);
+}
 
 (async function () {
     try {
-        checkVersion();
-        welcome();
+        const args = process.argv.slice(2);
         
+        !shouldHelp() && checkVersion();
+        
+        welcome();
+
+        if(shouldHelp())
+        {
+            getHelp();
+            process.exit(0);
+        }
+
         const bus = [
-            askAboutCluster,
-            askAboutServices,
-            askAboutTasks,
-            askAboutContainers,
-        ];
+                askAboutCluster,
+                askAboutServices,
+                askAboutTasks,
+                askAboutContainers,
+            ];
 
         for(let i = 0; i<bus.length; i++)
         {
@@ -182,7 +210,16 @@ const connectToContainer = () => {
             }
         }
 
-        connectToContainer();
+        if(args.length > 0 && args[0] === '--print-only')
+        {
+            console.log('');
+            console.log(chalk.blueBright.italic(getTarget()));
+        }
+        else
+        {
+            connectToContainer();
+        }
+
     } catch(e) {
         console.log(chalk.redBright.bold(e.message));
     }
