@@ -159,15 +159,29 @@ const getTarget = () => {
 }
 
 const connectToContainer = () => {
-    const command = `aws ssm start-session --target ${getTarget()}`;
+    const command_args = [
+        'ssm',
+        'start-session',
+        '--document-name=AWS-StartInteractiveCommand',
+        '--parameters=command=su -l',
+        '--target=' + getTarget()
+    ]
+
     console.log("\n");
+
+    let child = null;
+    process.on('SIGINT', (signal) => {
+        if (child != null) {
+            child.kill('SIGINT');
+        }
+    });
 
     const spinner = createSpinner('Wait for connection...');
     spinner.start();
     setTimeout(() => {
         spinner.stop();
-        spawn(command, { stdio: 'inherit', shell: 'sh' });
-    }, 3000);
+        child = spawn('aws', command_args, { stdio: 'inherit' });
+    }, 1000);
 }
 
 const shouldHelp = () => {
@@ -175,7 +189,7 @@ const shouldHelp = () => {
     return args.length > 0 && ['-h', '--help'].includes(args[0]);
 }
 
-(async function () {
+(async () => {
     try {
         const args = process.argv.slice(2);
 
