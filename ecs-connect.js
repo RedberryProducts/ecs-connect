@@ -4,15 +4,15 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import {
     ECSClient,
-    ListTasksCommand, 
-    ListClustersCommand, 
+    ListTasksCommand,
+    ListClustersCommand,
     ListServicesCommand,
     DescribeTasksCommand,
-    DescribeServicesCommand, 
+    DescribeServicesCommand,
     DescribeClustersCommand,
 } from '@aws-sdk/client-ecs';
 import { spawn, execSync } from 'child_process';
-import { createSpinner } from 'nanospinner'
+import { createSpinner } from 'nanospinner';
 
 const data = {
     cluster: {
@@ -58,11 +58,10 @@ const isUpToDate = () => {
 }
 
 const checkVersion = () => {
-    if(! isUpToDate())
-    {
+    if (!isUpToDate()) {
         console.log('Your version is behind! - ' + chalk.redBright.italic(getCurrentVersion()))
         console.log(
-            'Please update the package to get the latest version! ' + 
+            'Please update the package to get the latest version! ' +
             chalk.yellow.italic(getLatestVersion()),
         );
         console.log('Run ' + chalk.yellowBright.italic('npm -g update ecs-connect'));
@@ -88,29 +87,28 @@ const askAboutCluster = async () => {
         type: 'list',
         name: 'cluster',
         message: 'Choose your cluster',
-        choices: [...clusters.map(el => el.clusterName), {type: 'separator'}, 'Cancel'],
+        choices: [...clusters.map(el => el.clusterName), { type: 'separator' }, 'Cancel'],
     }]);
 
-    if(answer.cluster === 'Cancel')
+    if (answer.cluster === 'Cancel')
         process.exit(0);
 
     data.cluster.name = answer.cluster;
-    data.cluster.arn = clusters.find(el => el.clusterName === answer.cluster).clusterArn; 
+    data.cluster.arn = clusters.find(el => el.clusterName === answer.cluster).clusterArn;
 }
 
 const askAboutServices = async () => {
     const { serviceArns } = await client.send(new ListServicesCommand({ cluster: data.cluster.arn }));
     const { services } = await client.send(new DescribeServicesCommand({ services: serviceArns, cluster: data.cluster.arn }));
-    
+
     const { service } = await inquirer.prompt([{
         type: 'list',
         name: 'service',
         message: 'Choose service inside a cluster',
-        choices: [...services.map(el => el.serviceName), {type: 'separator'}, 'Go Back'],
+        choices: [...services.map(el => el.serviceName), { type: 'separator' }, 'Go Back'],
     }]);
-    
-    if(service !== 'Go Back')
-    {
+
+    if (service !== 'Go Back') {
         data.service.name = service;
         data.service.arn = services.find(el => el.serviceName === service).serviceArn;
     }
@@ -119,8 +117,8 @@ const askAboutServices = async () => {
 }
 
 const askAboutTasks = async () => {
-    const { taskArns } = await client.send(new ListTasksCommand({cluster: data.cluster.arn, serviceName: data.service.name, desiredStatus: 'RUNNING'}));
-    const { tasks } = await client.send(new DescribeTasksCommand({cluster: data.cluster.arn, tasks: taskArns }));
+    const { taskArns } = await client.send(new ListTasksCommand({ cluster: data.cluster.arn, serviceName: data.service.name, desiredStatus: 'RUNNING' }));
+    const { tasks } = await client.send(new DescribeTasksCommand({ cluster: data.cluster.arn, tasks: taskArns }));
     const taskTrimmedArns = tasks.map(el => {
         const chunks = el.taskArn.split(data.cluster.name + '/');
         return chunks[chunks.length - 1];
@@ -130,11 +128,10 @@ const askAboutTasks = async () => {
         type: 'list',
         name: 'task',
         message: 'Choose task inside service',
-        choices: [...taskTrimmedArns, {type: 'separator'}, 'Go Back'],
+        choices: [...taskTrimmedArns, { type: 'separator' }, 'Go Back'],
     }]);
 
-    if(task !== 'Go Back')
-    {
+    if (task !== 'Go Back') {
         data.taskArn = task;
         data.containers = tasks.find(el => el.taskArn.endsWith(task)).containers;
     }
@@ -147,11 +144,10 @@ const askAboutContainers = async () => {
         type: 'list',
         name: 'container',
         message: 'Choose container to connect',
-        choices: [...data.containers.map(el => el.name), {type: 'separator'}, 'Go Back'],
+        choices: [...data.containers.map(el => el.name), { type: 'separator' }, 'Go Back'],
     }]);
 
-    if(container !== 'Go Back')
-    {
+    if (container !== 'Go Back') {
         data.containerRuntimeId = data.containers.find(el => el.name === container).runtimeId;
     }
 
@@ -163,15 +159,29 @@ const getTarget = () => {
 }
 
 const connectToContainer = () => {
-    const command = `aws ssm start-session --target ${getTarget()}`;
+    const command_args = [
+        'ssm',
+        'start-session',
+        '--document-name=AWS-StartInteractiveCommand',
+        '--parameters=command=su -l',
+        '--target=' + getTarget()
+    ]
+
     console.log("\n");
+
+    let child = null;
+    process.on('SIGINT', (signal) => {
+        if (child != null) {
+            child.kill('SIGINT');
+        }
+    });
 
     const spinner = createSpinner('Wait for connection...');
     spinner.start();
     setTimeout(() => {
         spinner.stop();
-        spawn(command, {stdio: 'inherit', shell: 'sh'});
-    }, 3000);
+        child = spawn('aws', command_args, { stdio: 'inherit' });
+    }, 1000);
 }
 
 const shouldHelp = () => {
@@ -179,48 +189,43 @@ const shouldHelp = () => {
     return args.length > 0 && ['-h', '--help'].includes(args[0]);
 }
 
-(async function () {
+(async () => {
     try {
         const args = process.argv.slice(2);
-        
+
         !shouldHelp() && checkVersion();
-        
+
         welcome();
 
-        if(shouldHelp())
-        {
+        if (shouldHelp()) {
             getHelp();
             process.exit(0);
         }
 
         const bus = [
-                askAboutCluster,
-                askAboutServices,
-                askAboutTasks,
-                askAboutContainers,
-            ];
+            askAboutCluster,
+            askAboutServices,
+            askAboutTasks,
+            askAboutContainers,
+        ];
 
-        for(let i = 0; i<bus.length; i++)
-        {
+        for (let i = 0; i < bus.length; i++) {
             const result = await bus[i]();
 
-            if(result == 'Go Back')
-            {
+            if (result == 'Go Back') {
                 i -= 2;
             }
         }
 
-        if(args.length > 0 && args[0] === '--print-only')
-        {
+        if (args.length > 0 && args[0] === '--print-only') {
             console.log('');
             console.log(chalk.blueBright.italic(getTarget()));
         }
-        else
-        {
+        else {
             connectToContainer();
         }
 
-    } catch(e) {
+    } catch (e) {
         console.log(chalk.redBright.bold(e.message));
     }
 })();
