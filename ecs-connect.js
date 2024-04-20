@@ -11,8 +11,12 @@ import {
     DescribeServicesCommand,
     DescribeClustersCommand,
 } from '@aws-sdk/client-ecs';
-import { spawn, execSync } from 'child_process';
-import { createSpinner } from 'nanospinner';
+import {spawn, execSync} from 'child_process';
+import {createSpinner} from 'nanospinner';
+import {
+    DescribeDBInstancesCommand,
+    RDSClient
+} from "@aws-sdk/client-rds";
 
 const data = {
     cluster: {
@@ -26,9 +30,15 @@ const data = {
     taskArn: null,
     containers: null,
     containerRuntimeId: null,
+    connectionType: null,
+    dbInstance: {
+        instance: null,
+        endpoint: null,
+        port: null,
+    },
 };
 
-const client = new ECSClient();
+const ecsClient = new ECSClient();
 
 const getHelp = () => {
     console.log(chalk.bold('Simplified way to connect ECS containers'))
@@ -45,7 +55,7 @@ Options:
 const getCurrentVersion = () => {
     const rawData = execSync('npm list -g --json').toString().trim();
     const data = JSON.parse(rawData);
-    const { version } = data.dependencies['ecs-connect'];
+    const {version} = data.dependencies['ecs-connect'];
     return version;
 }
 
@@ -76,18 +86,17 @@ const welcome = () => {
     console.log('');
 }
 
-
 const askAboutCluster = async () => {
-    const { clusterArns } = await client.send(new ListClustersCommand({}));
-    const { clusters } = await client.send(
-        new DescribeClustersCommand({ clusters: clusterArns }),
+    const {clusterArns} = await ecsClient.send(new ListClustersCommand({}));
+    const {clusters} = await ecsClient.send(
+        new DescribeClustersCommand({clusters: clusterArns}),
     );
 
     const answer = await inquirer.prompt([{
         type: 'list',
         name: 'cluster',
         message: 'Choose your cluster',
-        choices: [...clusters.map(el => el.clusterName), { type: 'separator' }, 'Cancel'],
+        choices: [...clusters.map(el => el.clusterName), {type: 'separator'}, 'Cancel'],
     }]);
 
     if (answer.cluster === 'Cancel')
@@ -98,14 +107,17 @@ const askAboutCluster = async () => {
 }
 
 const askAboutServices = async () => {
-    const { serviceArns } = await client.send(new ListServicesCommand({ cluster: data.cluster.arn }));
-    const { services } = await client.send(new DescribeServicesCommand({ services: serviceArns, cluster: data.cluster.arn }));
+    const {serviceArns} = await ecsClient.send(new ListServicesCommand({cluster: data.cluster.arn}));
+    const {services} = await ecsClient.send(new DescribeServicesCommand({
+        services: serviceArns,
+        cluster: data.cluster.arn
+    }));
 
-    const { service } = await inquirer.prompt([{
+    const {service} = await inquirer.prompt([{
         type: 'list',
         name: 'service',
         message: 'Choose service inside a cluster',
-        choices: [...services.map(el => el.serviceName), { type: 'separator' }, 'Go Back'],
+        choices: [...services.map(el => el.serviceName), {type: 'separator'}, 'Go Back'],
     }]);
 
     if (service !== 'Go Back') {
@@ -117,18 +129,22 @@ const askAboutServices = async () => {
 }
 
 const askAboutTasks = async () => {
-    const { taskArns } = await client.send(new ListTasksCommand({ cluster: data.cluster.arn, serviceName: data.service.name, desiredStatus: 'RUNNING' }));
-    const { tasks } = await client.send(new DescribeTasksCommand({ cluster: data.cluster.arn, tasks: taskArns }));
+    const {taskArns} = await ecsClient.send(new ListTasksCommand({
+        cluster: data.cluster.arn,
+        serviceName: data.service.name,
+        desiredStatus: 'RUNNING'
+    }));
+    const {tasks} = await ecsClient.send(new DescribeTasksCommand({cluster: data.cluster.arn, tasks: taskArns}));
     const taskTrimmedArns = tasks.map(el => {
         const chunks = el.taskArn.split(data.cluster.name + '/');
         return chunks[chunks.length - 1];
     });
 
-    const { task } = await inquirer.prompt([{
+    const {task} = await inquirer.prompt([{
         type: 'list',
         name: 'task',
         message: 'Choose task inside service',
-        choices: [...taskTrimmedArns, { type: 'separator' }, 'Go Back'],
+        choices: [...taskTrimmedArns, {type: 'separator'}, 'Go Back'],
     }]);
 
     if (task !== 'Go Back') {
@@ -140,11 +156,11 @@ const askAboutTasks = async () => {
 }
 
 const askAboutContainers = async () => {
-    const { container } = await inquirer.prompt([{
+    const {container} = await inquirer.prompt([{
         type: 'list',
         name: 'container',
         message: 'Choose container to connect',
-        choices: [...data.containers.map(el => el.name), { type: 'separator' }, 'Go Back'],
+        choices: [...data.containers.map(el => el.name), {type: 'separator'}, 'Go Back'],
     }]);
 
     if (container !== 'Go Back') {
@@ -180,13 +196,94 @@ const connectToContainer = () => {
     spinner.start();
     setTimeout(() => {
         spinner.stop();
-        child = spawn('aws', command_args, { stdio: 'inherit' });
+        child = spawn('aws', command_args, {stdio: 'inherit'});
+    }, 1000);
+}
+
+const askAboutDBInstances = async () => {
+    const client = new RDSClient();
+    const {DBInstances} = await client.send(new DescribeDBInstancesCommand());
+
+    const dbInstances = [];
+    const clusterName = data.cluster.name.split('-').slice(0,-1).join('-');
+
+    DBInstances.forEach((instance)=> {
+        if(instance.DBInstanceIdentifier.includes(clusterName))
+            dbInstances.push({
+                instance: instance.DBInstanceIdentifier,
+                endpoint: instance.Endpoint.Address,
+                port: instance.Endpoint.Port,
+            })
+        });
+
+    const {instance} = await inquirer.prompt([{
+        type: 'list',
+        name: 'instance',
+        message: 'Choose container to connect',
+        choices: [...dbInstances.map(el => el.instance), {type: 'separator'}, 'Cancel'],
+    }]);
+
+    if (instance === 'Cancel')
+        process.exit(0);
+
+    data.dbInstance = dbInstances.find(el => el.instance === instance);
+
+    return instance;
+}
+
+const connectToDatabase = async () => {
+
+    await askAboutDBInstances();
+
+
+    const command_args = [
+        'ssm',
+        'start-session',
+        '--target=' + getTarget(),
+        '--document-name=AWS-StartPortForwardingSessionToRemoteHost',
+        '--parameters={"host": ["' + data.dbInstance.endpoint + '"], "portNumber":["' + data.dbInstance.port + '"],"localPortNumber":["33066"]}',
+    ];
+
+    console.log("\n");
+
+    const spinner = createSpinner('Wait for connection...');
+    spinner.start();
+    setTimeout(() => {
+        spinner.stop();
+        spawn('aws', command_args, {stdio: 'inherit'});
     }, 1000);
 }
 
 const shouldHelp = () => {
     const args = process.argv.slice(2);
     return args.length > 0 && ['-h', '--help'].includes(args[0]);
+}
+
+const askAboutConnection = async () => {
+
+    const {connection} = await inquirer.prompt([{
+        type: 'list',
+        name: 'connection',
+        message: 'Choose what to connect',
+        choices: ['DB', 'Shell', {type: 'separator'}, 'Go Back'],
+    }]);
+
+    if (connection !== 'Go Back') {
+        data.connectionType = connection;
+    }
+
+    return connection;
+}
+
+const connect = async () => {
+    switch (data.connectionType) {
+        case 'DB':
+            connectToDatabase();
+            break;
+        case 'Shell':
+            connectToContainer();
+            break;
+    }
 }
 
 (async () => {
@@ -207,6 +304,7 @@ const shouldHelp = () => {
             askAboutServices,
             askAboutTasks,
             askAboutContainers,
+            askAboutConnection,
         ];
 
         for (let i = 0; i < bus.length; i++) {
@@ -220,9 +318,8 @@ const shouldHelp = () => {
         if (args.length > 0 && args[0] === '--print-only') {
             console.log('');
             console.log(chalk.blueBright.italic(getTarget()));
-        }
-        else {
-            connectToContainer();
+        } else {
+            await connect();
         }
 
     } catch (e) {
