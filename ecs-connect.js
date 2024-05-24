@@ -52,6 +52,10 @@ Options:
     `);
 }
 
+const runningWithoutInstall = () => {
+    return !data.dependencies?.['ecs-connect'];
+}
+
 const getCurrentVersion = () => {
     const rawData = execSync('npm list -g --json').toString().trim();
     const data = JSON.parse(rawData);
@@ -68,6 +72,12 @@ const isUpToDate = () => {
 }
 
 const checkVersion = () => {
+
+    if (runningWithoutInstall()) {
+        console.log(chalk.yellowBright.italic("Version check is not available. You are probably running package with npx.\n"))
+        return;
+    }
+
     if (!isUpToDate()) {
         console.log('Your version is behind! - ' + chalk.redBright.italic(getCurrentVersion()))
         console.log(
@@ -205,16 +215,16 @@ const askAboutDBInstances = async () => {
     const {DBInstances} = await client.send(new DescribeDBInstancesCommand());
 
     const dbInstances = [];
-    const clusterName = data.cluster.name.split('-').slice(0,-1).join('-');
+    const clusterName = data.cluster.name.split('-').slice(0, -1).join('-');
 
-    DBInstances.forEach((instance)=> {
-        if(instance.DBInstanceIdentifier.includes(clusterName))
+    DBInstances.forEach((instance) => {
+        if (instance.DBInstanceIdentifier.includes(clusterName))
             dbInstances.push({
                 instance: instance.DBInstanceIdentifier,
                 endpoint: instance.Endpoint.Address,
                 port: instance.Endpoint.Port,
             })
-        });
+    });
 
     const {instance} = await inquirer.prompt([{
         type: 'list',
