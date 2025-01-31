@@ -116,13 +116,30 @@ const askAboutCluster = async () => {
     data.cluster.arn = clusters.find(el => el.clusterName === answer.cluster).clusterArn;
 }
 
-const askAboutServices = async () => {
-    const {serviceArns} = await ecsClient.send(new ListServicesCommand({cluster: data.cluster.arn}));
-    const {services} = await ecsClient.send(new DescribeServicesCommand({
-        services: serviceArns,
-        cluster: data.cluster.arn
-    }));
+const getServiceList = async (cluster) => {
+    let serviceList = [];
+    let nextToken = undefined;
 
+    while (nextToken !== null) {
+        const { nextToken: newNextToken, serviceArns } = await ecsClient.send(
+            new ListServicesCommand({ cluster, nextToken })
+        );
+
+        nextToken = newNextToken ?? null;
+
+        if (serviceArns?.length) {
+            const { services } = await ecsClient.send(
+                new DescribeServicesCommand({ services: serviceArns, cluster })
+            );
+            serviceList.push(...services);
+        }
+    }
+
+    return serviceList;
+}
+
+const askAboutServices = async () => {
+    const services = await getServiceList(data.cluster.arn)
     const {service} = await inquirer.prompt([{
         type: 'list',
         name: 'service',
