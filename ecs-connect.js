@@ -292,7 +292,7 @@ const askAboutConnection = async () => {
         type: 'list',
         name: 'connection',
         message: 'Choose what to connect',
-        choices: ['DB', 'Shell', {type: 'separator'}, 'Go Back'],
+        choices: ['Shell', 'DB', {type: 'separator'}, 'Go Back'],
     }]);
 
     if (connection !== 'Go Back') {
