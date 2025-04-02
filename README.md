@@ -6,7 +6,7 @@ You can select the DB connection option in order to open the portal 🌪️ to H
 
 ### Instructions
 
-1. Make sure you have `aws-cli` installed.
+1. Make sure you have `aws-cli` and `SessionManagerPlugin` installed.
 2. Run `aws configure` and skip all prompts except `region`. Set corresponding region, for example `eu-central-1`.
 3. Go to `access keys` section in `AWS access portal` and copy credentials.
 4. Paste credentials into the terminal to set variables.
