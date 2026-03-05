@@ -144,7 +144,7 @@ const askAboutServices = async () => {
         type: 'list',
         name: 'service',
         message: 'Choose service inside a cluster',
-        choices: [...services.map(el => el.serviceName), {type: 'separator'}, 'Go Back'],
+        choices: [...services.map(el => el.serviceName).sort(), {type: 'separator'}, 'Go Back'],
     }]);
 
     if (service !== 'Go Back') {
